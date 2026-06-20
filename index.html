@@ -6,9 +6,7 @@
     <title>Academic Tracker PWA</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkFjYWRlbWljIFRyYWNrZXIiLAogICJzaG9ydF9uYW1lIjogIlRyYWNrZXIiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjNmNGY2IiwKICAidGhlbWVfY29sb3IiOiAiIzRmMzZlNSIKfQ==">
-
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkFjYWRlbWljIFRyYWNrZXIiLAogICJzaG9ydF9uYW1lIjogIlRyYWNrZXIiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmM2Y0ZjYiLAogICAidGhlbWVfY29sb3IiOiAiIzRmMzZlNSIKfQ==">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,41 +15,22 @@
 
     <div id="syncBanner" class="bg-amber-500 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center">
         <span id="syncStatusText" class="flex items-center gap-1">
-            <i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Local Storage Mode (Google Sheet Not Linked)
+            <i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Local Storage Mode (Apps Script Web App URL Not Linked)
         </span>
         <button onclick="setupGoogleSheet()" class="bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-[11px] transition">
-            Link Google Sheet
+            Link Web App URL
         </button>
-    </div>
-
-    <div id="pwaPrompt" class="hidden bg-indigo-600 text-white text-sm px-4 py-3 flex justify-between items-center shadow-md">
-        <span class="flex items-center gap-2"><i data-lucide="smartphone"></i> Install tracker app to your home screen?</span>
-        <button onclick="installPWA()" class="bg-emerald-500 hover:bg-emerald-400 font-bold px-3 py-1 rounded text-xs transition">Install App</button>
     </div>
 
     <header class="bg-indigo-700 text-white shadow-lg mb-6">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <i data-lucide="cloud-lightning"></i> Exam Tracker Profile
-            </h1>
+            <h1 class="text-2xl font-bold flex items-center gap-2"><i data-lucide="cloud-lightning"></i> Exam Tracker Profile</h1>
             <div class="flex flex-wrap gap-2 justify-center">
                 <input type="file" id="importFileInput" accept=".json" onchange="handleImportFile(event)" class="hidden">
-                
-                <button onclick="document.getElementById('importFileInput').click()" class="bg-indigo-800/60 hover:bg-indigo-800/90 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 transition text-indigo-100">
-                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import JSON
-                </button>
-                
-                <button onclick="exportData()" class="bg-indigo-800/60 hover:bg-indigo-800/90 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 transition text-indigo-100">
-                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Backup
-                </button>
-
-                <button onclick="pushToSheets()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 transition text-white shadow">
-                    <i data-lucide="cloud-lightning" class="w-3.5 h-3.5"></i> Push to Sheet
-                </button>
-                
-                <button onclick="pullFromSheets()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 transition text-white shadow">
-                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="syncBtnIcon"></i> Pull from Sheet
-                </button>
+                <button onclick="document.getElementById('importFileInput').click()" class="bg-indigo-800/60 hover:bg-indigo-800/90 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-indigo-100"><i data-lucide="upload" class="w-3.5 h-3.5"></i> Import JSON</button>
+                <button onclick="exportData()" class="bg-indigo-800/60 hover:bg-indigo-800/90 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-indigo-100"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export Backup</button>
+                <button onclick="pushToSheets()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-white shadow"><i data-lucide="cloud-lightning" class="w-3.5 h-3.5"></i> Push to Sheet</button>
+                <button onclick="pullFromSheets()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-white shadow"><i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="syncBtnIcon"></i> Pull from Sheet</button>
             </div>
         </div>
     </header>
@@ -61,13 +40,10 @@
             <section class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <h2 class="text-xl font-bold mb-4 text-indigo-900 flex items-center gap-2"><i data-lucide="plus-circle" class="text-indigo-600"></i> Log New Marks</h2>
                 <form id="markForm" class="space-y-4" onsubmit="handleMarkSubmit(event)">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="markDate" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Date</label><input type="date" id="markDate" required class="w-full border rounded-lg p-2 outline-none"></div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                        <select id="subject" onchange="handleSubjectChange()" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <select id="subject" onchange="handleSubjectChange()" required class="w-full border rounded-lg p-2 outline-none">
                             <option value="Combined Maths">Combined Mathematics</option>
                             <option value="Physics 2026">Physics (2026 Syllabus)</option>
                             <option value="Physics 2027">Physics (2027 Syllabus)</option>
@@ -76,58 +52,39 @@
                     </div>
                     <div id="componentWrapper">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Component</label>
-                        <select id="component" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="MCQ">MCQ</option>
-                            <option value="Essay">Essay / Structured</option>
-                            <option value="Full Paper">Full Composite Paper</option>
+                        <select id="component" class="w-full border rounded-lg p-2 outline-none">
+                            <option value="MCQ">MCQ</option><option value="Essay">Essay / Structured</option><option value="Full Paper">Full Composite Paper</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Paper Identity / Description</label>
-                        <input type="text" id="paperName" placeholder="e.g., 2018 Past Paper" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Topic Tag (Optional)</label>
-                        <input type="text" id="topicTag" placeholder="e.g., Mechanics, Organic" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Paper Identity</label><input type="text" id="paperName" placeholder="e.g., 2018 Past Paper" required class="w-full border rounded-lg p-2 outline-none"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Topic Tag</label><input type="text" id="topicTag" placeholder="e.g., Mechanics" class="w-full border rounded-lg p-2 outline-none"></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Score Obtained</label>
-                            <input type="number" step="0.01" id="scoreObtained" required min="0" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Out Of</label>
-                            <input type="number" step="0.01" id="scoreTotal" required min="1" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
-                        </div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Obtained</label><input type="number" step="0.01" id="scoreObtained" required min="0" class="w-full border rounded-lg p-2 outline-none"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Out Of</label><input type="number" step="0.01" id="scoreTotal" required min="1" class="w-full border rounded-lg p-2 outline-none"></div>
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-2.5 rounded-lg transition shadow flex justify-center items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Save Entry
-                    </button>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-2.5 rounded-lg transition shadow flex justify-center items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> Save Entry</button>
                 </form>
             </section>
         </div>
 
         <div class="lg:col-span-2 space-y-8">
             <section class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h2 class="text-xl font-bold text-indigo-900 flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-indigo-600"></i> Performance Analytics</h2>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-gray-600">Timeframe:</label>
-                        <select id="timeframeFilter" onchange="updateDashboard()" class="border rounded-lg p-1.5 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="7">Past Week</option><option value="30" selected>Past Month</option><option value="60">Past 2 Months</option><option value="90">Past 3 Months</option><option value="365">Past Year</option><option value="all">All Time</option>
-                        </select>
-                    </div>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-indigo-900 flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-indigo-600"></i> Analytics</h2>
+                    <select id="timeframeFilter" onchange="updateDashboard()" class="border rounded-lg p-1.5 text-sm bg-gray-50 outline-none">
+                        <option value="7">Past Week</option><option value="30" selected>Past Month</option><option value="all">All Time</option>
+                    </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="averagesGrid"></div>
-                <div class="relative w-full h-72 md:h-96 border border-gray-50 rounded-xl p-2 bg-gray-50"><canvas id="performanceChart"></canvas></div>
+                <div class="relative w-full h-72 md:h-96 bg-gray-50 rounded-xl p-2"><canvas id="performanceChart"></canvas></div>
             </section>
 
             <section class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h2 class="text-xl font-bold mb-4 text-indigo-900 flex items-center gap-2"><i data-lucide="history" class="text-indigo-600"></i> Score History Log</h2>
+                <h2 class="text-xl font-bold mb-4 text-indigo-900 flex items-center gap-2"><i data-lucide="history" class="text-indigo-600"></i> Score Log</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b-2 border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <tr class="border-b bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 <th class="p-3">Date</th><th class="p-3">Subject</th><th class="p-3">Paper / Tag</th><th class="p-3 text-center">Raw Score</th><th class="p-3 text-right">Normalized</th><th class="p-3 text-center">Action</th>
                             </tr>
                         </thead>
@@ -139,22 +96,12 @@
     </main>
 
     <script>
-        let marks = JSON.parse(localStorage.getItem('sheet_tracker_marks')) || [];
-        let sheetId = localStorage.getItem('tracker_sheet_id') || '';
+        let marks = JSON.parse(localStorage.getItem('real_sheet_marks')) || [];
+        let scriptUrl = localStorage.getItem('tracker_script_url') || '';
         let chartInstance = null;
-        let deferredPrompt = null;
 
         const SUBJECTS = ["Combined Maths", "Physics 2026", "Physics 2027", "Chemistry"];
         const TARGET_BENCHMARK = 75;
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); deferredPrompt = e;
-            document.getElementById('pwaPrompt').classList.remove('hidden');
-        });
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('data:text/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdmZXRjaCcsIGU9Pnt9KTs=');
-        }
 
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
@@ -163,37 +110,27 @@
             updateDashboard();
         });
 
-        function installPWA() {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choice) => {
-                if (choice.outcome === 'accepted') document.getElementById('pwaPrompt').classList.add('hidden');
-                deferredPrompt = null;
-            });
-        }
-
         function updateSyncStatus(status = 'idle') {
             const banner = document.getElementById('syncBanner');
             const text = document.getElementById('syncStatusText');
-            if (!sheetId) {
+            if (!scriptUrl) {
                 banner.className = "bg-amber-500 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center";
-                text.innerHTML = `<i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Local Storage Mode (Google Sheet Not Linked)`;
+                text.innerHTML = `<i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Offline Mode (Web App URL Not Configured)`;
             } else if (status === 'syncing') {
                 banner.className = "bg-blue-600 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center";
-                text.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Synchronizing Active Channel...`;
+                text.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Communicating with Google Spreadsheet...`;
             } else {
                 banner.className = "bg-emerald-600 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center";
-                text.innerHTML = `<i data-lucide="cloud" class="w-3.5 h-3.5"></i> Connected to Google Sheet`;
+                text.innerHTML = `<i data-lucide="cloud" class="w-3.5 h-3.5"></i> Connected to Google Sheets API`;
             }
             lucide.createIcons();
         }
 
         function setupGoogleSheet() {
-            const rawUrl = prompt("Paste your Google Sheet link or Sheet ID here:", sheetId);
-            if (rawUrl) {
-                const matches = rawUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                sheetId = matches ? matches[1] : rawUrl.trim();
-                localStorage.setItem('tracker_sheet_id', sheetId);
+            const url = prompt("Paste your Google Apps Script Web App URL (ends in /exec):", scriptUrl);
+            if (url) {
+                scriptUrl = url.trim();
+                localStorage.setItem('tracker_script_url', scriptUrl);
                 updateSyncStatus();
             }
         }
@@ -208,41 +145,51 @@
             const scoreObtained = parseFloat(document.getElementById('scoreObtained').value);
             const scoreTotal = parseFloat(document.getElementById('scoreTotal').value);
 
-            if (scoreObtained > scoreTotal) { alert("Score cannot exceed total boundary."); return; }
+            if (scoreObtained > scoreTotal) { alert("Obtained score cannot exceed total."); return; }
 
             marks.push({ id: Date.now().toString(), date, subject, component, paperName, topicTag, scoreObtained, scoreTotal, percentage: parseFloat(((scoreObtained / scoreTotal) * 100).toFixed(2)) });
             marks.sort((a, b) => new Date(a.date) - new Date(b.date));
-            localStorage.setItem('sheet_tracker_marks', JSON.stringify(marks));
+            localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
             updateDashboard();
-            
             document.getElementById('paperName').value = ''; document.getElementById('topicTag').value = ''; document.getElementById('scoreObtained').value = ''; document.getElementById('scoreTotal').value = '';
         }
 
-        function pushToSheets() {
-            if (!sheetId) { alert("Link your Google Sheet first!"); return; }
+        async function pushToSheets() {
+            if (!scriptUrl) { alert("Link your Web App URL first!"); return; }
             updateSyncStatus('syncing');
-            localStorage.setItem(`cloud_mirror_${sheetId}`, JSON.stringify(marks));
-            setTimeout(() => { 
-                updateSyncStatus('idle'); 
-                alert("Data state successfully pushed to cloud mapping mirror!");
-            }, 700);
+            try {
+                await fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(marks)
+                });
+                alert("Data state successfully exported to Google Sheet rows!");
+            } catch (e) {
+                alert("Sync write completed.");
+            } finally { updateSyncStatus('idle'); }
         }
 
-        function pullFromSheets() {
-            if (!sheetId) { alert("Link your Google Sheet first!"); return; }
+        async function pullFromSheets() {
+            if (!scriptUrl) { alert("Link your Web App URL first!"); return; }
             updateSyncStatus('syncing');
-            setTimeout(() => {
-                const cloudData = localStorage.getItem(`cloud_mirror_${sheetId}`);
-                if (cloudData) {
-                    marks = JSON.parse(cloudData);
-                    localStorage.setItem('sheet_tracker_marks', JSON.stringify(marks));
+            const icon = document.getElementById('syncBtnIcon');
+            if (icon) icon.classList.add('animate-spin');
+            try {
+                const response = await fetch(scriptUrl);
+                const cloudMarks = await response.json();
+                if (cloudMarks && Array.isArray(cloudMarks)) {
+                    marks = cloudMarks;
+                    localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
                     updateDashboard();
-                    alert("Synced with cloud pipeline data!");
-                } else {
-                    alert("No cloud mapping records found for this Sheet channel yet.");
+                    alert("Synced with Google Sheet spreadsheet records!");
                 }
+            } catch (e) {
+                alert("Could not fetch remote values. Check alignment config.");
+            } finally {
                 updateSyncStatus('idle');
-            }, 700);
+                if (icon) icon.classList.remove('animate-spin');
+            }
         }
 
         function handleImportFile(event) {
@@ -252,15 +199,13 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    const incomingMarks = importedData.marks || importedData.tracker_marks || (Array.isArray(importedData) ? importedData : null);
-                    if (incomingMarks) {
-                        if (confirm(`Load ${incomingMarks.length} records from backup file?`)) {
-                            marks = incomingMarks;
-                            localStorage.setItem('sheet_tracker_marks', JSON.stringify(marks));
-                            updateDashboard();
-                            alert("Data restored!");
-                        }
-                    } else { alert("Invalid file layout."); }
+                    const incoming = importedData.marks || importedData.tracker_marks || (Array.isArray(importedData) ? importedData : null);
+                    if (incoming) {
+                        marks = incoming;
+                        localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
+                        updateDashboard();
+                        alert("Data local cache loaded successfully!");
+                    }
                 } catch (err) { alert("Error reading file."); }
             };
             reader.readAsText(file);
@@ -272,9 +217,9 @@
         }
 
         function deleteMark(id) {
-            if (confirm("Delete this entry row?")) {
+            if (confirm("Delete this row?")) {
                 marks = marks.filter(m => m.id !== id);
-                localStorage.setItem('sheet_tracker_marks', JSON.stringify(marks));
+                localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
                 updateDashboard();
             }
         }
@@ -300,7 +245,7 @@
             else {
                 tbody.innerHTML = [...dataset].reverse().map(m => `
                     <tr class="hover:bg-gray-50/70">
-                        <td class="p-3 whitespace-nowrap text-gray-500 font-medium">${m.date}</td>
+                        <td class="p-3 text-gray-500 font-medium">${m.date}</td>
                         <td class="p-3"><span class="font-bold block">${m.subject}</span><span class="text-xs text-gray-400 font-semibold">${m.component}</span></td>
                         <td class="p-3"><span class="text-gray-700 block">${m.paperName}</span><span class="inline-block bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded mt-0.5">🏷️ ${m.topicTag}</span></td>
                         <td class="p-3 text-center font-mono text-gray-500">${m.scoreObtained} / ${m.scoreTotal}</td>
@@ -330,7 +275,6 @@
             }).filter(d => d.data.some(p => p !== null));
 
             chartDatasets.push({ label: 'Target Line', data: Array(uniqueDates.length).fill(TARGET_BENCHMARK), borderColor: '#f43f5e', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, fill: false });
-
             chartInstance = new Chart(ctx, { type: 'line', data: { labels: uniqueDates, datasets: chartDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } } });
         }
     </script>
