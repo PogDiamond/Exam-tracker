@@ -115,17 +115,19 @@
                     <p class="text-sm opacity-90">Highest Streak: <span id="highestStreak" class="font-bold">0</span></p>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="check-square" class="text-emerald-500"></i> Daily Tasks</h3>
-                    <p class="text-xs text-gray-500 mb-4">Complete tasks to maintain your streak.</p>
-                    <div class="space-y-3" id="dailyTasksList">
-                        </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i data-lucide="check-square" class="text-emerald-500"></i> Daily Habits</h3>
+                        <button onclick="toggleEditTasks()" class="text-gray-400 hover:text-indigo-600 text-xs flex items-center gap-1 font-bold"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Check off habits or log a mark to keep your streak alive.</p>
+                    <div class="space-y-3" id="dailyTasksList"></div>
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 md:col-span-2">
                     <div class="flex justify-between items-end mb-2">
                         <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="text-blue-500"></i> Weekly Grind</h3>
-                        <span class="text-sm font-bold text-blue-600" id="weeklyProgressText">0 / 5 Papers</span>
+                        <span class="text-sm font-bold text-blue-600" id="weeklyProgressText">0 / 5 Logs</span>
                     </div>
                     <p class="text-xs text-gray-500 mb-4">Goal: Log at least 5 study sessions or papers this week.</p>
                     <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
@@ -137,7 +139,6 @@
         </section>
 
         <section id="tab-settings" class="tab-content hidden space-y-6">
-            
             <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
                 <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider mb-4">Cloud Sync Controls</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -172,7 +173,17 @@
     <script>
         let marks = JSON.parse(localStorage.getItem('real_sheet_marks')) || [];
         let scriptUrl = localStorage.getItem('tracker_script_url') || '';
-        let gameData = JSON.parse(localStorage.getItem('tracker_game_state')) || { streak: 0, highest: 0, lastActive: '' };
+        
+        // Gamification State Initialization (Safe Migration)
+        let gameData = JSON.parse(localStorage.getItem('tracker_game_state')) || {};
+        gameData.streak = gameData.streak || 0;
+        gameData.highest = gameData.highest || 0;
+        gameData.lastActive = gameData.lastActive || '';
+        gameData.tasks = gameData.tasks || ["Review A/L theory notes", "Solve 5 Combined Maths/Physics MCQs"];
+        gameData.lastTaskDate = gameData.lastTaskDate || '';
+        gameData.taskChecks = gameData.taskChecks || Array(gameData.tasks.length).fill(false);
+        
+        let isEditingTasks = false;
         let chartInstance = null;
 
         const SUBJECTS = ["Combined Maths", "Physics 2026", "Physics 2027", "Chemistry"];
@@ -181,38 +192,91 @@
             lucide.createIcons();
             document.getElementById('markDate').value = new Date().toISOString().split('T')[0];
             updateSyncStatus();
+            renderTasks();
             evaluateGamification();
             updateDashboard();
         });
 
-        // --- TAB NAVIGATION LOGIC ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(tabId).classList.remove('hidden');
-            
-            // Reset button styles
             document.querySelectorAll('[id^="btn-tab-"]').forEach(btn => {
-                btn.classList.remove('tab-active');
-                btn.classList.add('text-gray-500');
+                btn.classList.remove('tab-active'); btn.classList.add('text-gray-500');
             });
-            
-            // Highlight active
             const activeBtn = document.getElementById('btn-' + tabId);
-            activeBtn.classList.add('tab-active');
-            activeBtn.classList.remove('text-gray-500');
+            activeBtn.classList.add('tab-active'); activeBtn.classList.remove('text-gray-500');
         }
 
-        // --- GAMIFICATION LOGIC ---
+        function saveGameData() { localStorage.setItem('tracker_game_state', JSON.stringify(gameData)); }
+
+        // --- TASK RENDERING & EDITING LOGIC ---
+        function renderTasks() {
+            const today = new Date().toISOString().split('T')[0];
+            if (gameData.lastTaskDate !== today) {
+                gameData.taskChecks = gameData.tasks.map(() => false);
+                gameData.lastTaskDate = today;
+                saveGameData();
+            }
+
+            const list = document.getElementById('dailyTasksList');
+            if (isEditingTasks) {
+                list.innerHTML = gameData.tasks.map((task, i) => `
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="edit-task-${i}" value="${task}" class="flex-1 border rounded p-2 text-sm outline-none focus:border-indigo-500">
+                        <button onclick="deleteTask(${i})" class="text-rose-500 hover:bg-rose-50 p-2 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                `).join('') + `
+                    <button onclick="addTask()" class="text-xs text-indigo-600 font-bold px-2 py-1 hover:bg-indigo-50 rounded mt-1">+ Add Habit</button>
+                    <button onclick="saveTasks()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-lg mt-3 text-sm font-bold shadow transition">Save Habits</button>
+                `;
+            } else {
+                if (gameData.tasks.length === 0) {
+                    list.innerHTML = `<p class="text-xs text-gray-400 italic">No daily habits set. Click Edit to add some!</p>`;
+                } else {
+                    list.innerHTML = gameData.tasks.map((task, i) => {
+                        const isChecked = gameData.taskChecks[i];
+                        return `
+                        <label class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isChecked ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTask(${i})" class="hidden">
+                            <div class="w-5 h-5 rounded-md border flex flex-shrink-0 items-center justify-center transition-colors ${isChecked ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 bg-white'}">
+                                ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5 text-white"></i>' : ''}
+                            </div>
+                            <span class="text-sm font-semibold leading-tight ${isChecked ? 'line-through opacity-70' : ''}">${task}</span>
+                        </label>
+                        `;
+                    }).join('');
+                }
+            }
+            lucide.createIcons();
+        }
+
+        function toggleTask(index) {
+            gameData.taskChecks[index] = !gameData.taskChecks[index];
+            saveGameData();
+            evaluateGamification();
+            renderTasks();
+        }
+
+        function toggleEditTasks() { isEditingTasks = !isEditingTasks; renderTasks(); }
+        function addTask() { gameData.tasks.push(""); gameData.taskChecks.push(false); renderTasks(); }
+        function deleteTask(index) { gameData.tasks.splice(index, 1); gameData.taskChecks.splice(index, 1); renderTasks(); }
+        function saveTasks() {
+            gameData.tasks = gameData.tasks.map((_, i) => document.getElementById(`edit-task-${i}`).value.trim()).filter(t => t !== "");
+            gameData.taskChecks = gameData.taskChecks.slice(0, gameData.tasks.length);
+            isEditingTasks = false;
+            saveGameData();
+            renderTasks();
+        }
+
         function evaluateGamification() {
             const today = new Date().toISOString().split('T')[0];
-            const todayMarks = marks.filter(m => m.date === today);
-            
-            // Daily Tasks
-            const hasLoggedToday = todayMarks.length > 0;
-            const hitBenchmark = todayMarks.some(m => m.percentage >= 75);
+            const hasLoggedToday = marks.some(m => m.date === today);
+            const hasCompletedATask = gameData.taskChecks.some(c => c === true);
 
-            // Update Streak
-            if (hasLoggedToday && gameData.lastActive !== today) {
+            // Streak is alive if they logged a mark OR completed at least one manual task
+            const activeToday = hasLoggedToday || hasCompletedATask;
+
+            if (activeToday && gameData.lastActive !== today) {
                 if (gameData.lastActive) {
                     const diffDays = Math.floor((new Date(today) - new Date(gameData.lastActive)) / (1000 * 60 * 60 * 24));
                     if (diffDays === 1) { gameData.streak++; } 
@@ -222,44 +286,29 @@
                 }
                 gameData.lastActive = today;
                 if (gameData.streak > gameData.highest) gameData.highest = gameData.streak;
-                localStorage.setItem('tracker_game_state', JSON.stringify(gameData));
-            } else if (!hasLoggedToday && gameData.lastActive) {
+                saveGameData();
+            } else if (!activeToday && gameData.lastActive) {
                 const diffDays = Math.floor((new Date(today) - new Date(gameData.lastActive)) / (1000 * 60 * 60 * 24));
                 if (diffDays > 1) { 
                     gameData.streak = 0; 
-                    localStorage.setItem('tracker_game_state', JSON.stringify(gameData)); 
+                    saveGameData(); 
                 }
             }
 
-            // Weekly Goal (Last 7 days)
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             const weeklyCount = marks.filter(m => new Date(m.date) >= sevenDaysAgo).length;
             const weeklyPercent = Math.min((weeklyCount / 5) * 100, 100);
 
-            // Update DOM Elements
             document.getElementById('streakCount').innerText = gameData.streak;
             document.getElementById('bigStreak').innerText = gameData.streak;
             document.getElementById('highestStreak').innerText = gameData.highest;
             
-            document.getElementById('weeklyProgressText').innerText = `${weeklyCount} / 5 Entries`;
+            document.getElementById('weeklyProgressText').innerText = `${weeklyCount} / 5 Logs`;
             document.getElementById('weeklyProgressBar').style.width = `${weeklyPercent}%`;
             if(weeklyPercent === 100) document.getElementById('weeklyProgressBar').classList.add('bg-emerald-500');
-
-            document.getElementById('dailyTasksList').innerHTML = `
-                <div class="flex items-center gap-3 p-3 rounded-lg border ${hasLoggedToday ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-600'}">
-                    <i data-lucide="${hasLoggedToday ? 'check-circle-2' : 'circle'}" class="w-5 h-5 ${hasLoggedToday ? 'text-emerald-500' : 'text-gray-400'}"></i>
-                    <span class="text-sm font-semibold">Log at least one study session today</span>
-                </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg border ${hitBenchmark ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-600'}">
-                    <i data-lucide="${hitBenchmark ? 'check-circle-2' : 'circle'}" class="w-5 h-5 ${hitBenchmark ? 'text-blue-500' : 'text-gray-400'}"></i>
-                    <span class="text-sm font-semibold">Score above 75% on any test today</span>
-                </div>
-            `;
-            lucide.createIcons();
         }
 
-        // --- CLOUD SYNC LOGIC ---
         function updateSyncStatus(status = 'idle') {
             const text = document.getElementById('syncStatusText');
             if (!scriptUrl) { text.innerHTML = `<i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Offline`; } 
@@ -269,176 +318,111 @@
         }
 
         function setupGoogleSheet() {
-            const url = prompt("Paste your Google Apps Script Web App URL (ends in /exec):", scriptUrl);
+            const url = prompt("Paste your Apps Script Web App URL:", scriptUrl);
             if (url) { scriptUrl = url.trim(); localStorage.setItem('tracker_script_url', scriptUrl); updateSyncStatus(); }
         }
 
         async function pushToSheets() {
-            if (!scriptUrl) { alert("Link your Web App URL first!"); return; }
+            if (!scriptUrl) { alert("Link URL first!"); return; }
             updateSyncStatus('syncing');
-            try {
-                await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marks) });
-                alert("Cloud Push Successful!");
-            } catch (e) { alert("Sync completed."); } finally { updateSyncStatus('idle'); }
+            try { await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(marks) }); } 
+            catch (e) { } finally { updateSyncStatus('idle'); alert("Cloud Push Done!");}
         }
 
         async function pullFromSheets() {
-            if (!scriptUrl) { alert("Link your Web App URL first!"); return; }
+            if (!scriptUrl) { alert("Link URL first!"); return; }
             updateSyncStatus('syncing');
             try {
-                const response = await fetch(scriptUrl);
-                const cloudMarks = await response.json();
-                if (cloudMarks && Array.isArray(cloudMarks)) {
-                    marks = cloudMarks;
-                    localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
-                    updateDashboard();
-                    evaluateGamification();
-                    alert("Pulled latest data from cloud!");
-                }
-            } catch (e) { alert("Could not pull data. Check URL permissions."); } finally { updateSyncStatus('idle'); }
+                const res = await fetch(scriptUrl); const data = await res.json();
+                if (Array.isArray(data)) { marks = data; localStorage.setItem('real_sheet_marks', JSON.stringify(marks)); updateDashboard(); evaluateGamification(); }
+            } catch (e) { alert("Pull failed. Check URL."); } finally { updateSyncStatus('idle'); }
         }
 
-        // --- BACKUP LOGIC (UPGRADED) ---
         function handleImportFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-                    // Handle new format containing gamification OR old raw array
-                    if(importedData.marksData) {
-                        marks = importedData.marksData;
-                        gameData = importedData.gameState || gameData;
-                    } else {
-                        marks = importedData.marks || importedData.tracker_marks || (Array.isArray(importedData) ? importedData : null);
-                    }
-                    
-                    if (marks) {
-                        localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
-                        localStorage.setItem('tracker_game_state', JSON.stringify(gameData));
-                        updateDashboard();
-                        evaluateGamification();
-                        alert("Backup Loaded!");
-                    }
-                } catch (err) { alert("Error reading file."); }
-            };
-            reader.readAsText(file);
+                    const data = JSON.parse(e.target.result);
+                    if(data.marksData) { marks = data.marksData; gameData = data.gameState || gameData; } 
+                    else { marks = data.marks || data.tracker_marks || data; }
+                    localStorage.setItem('real_sheet_marks', JSON.stringify(marks)); saveGameData();
+                    updateDashboard(); renderTasks(); evaluateGamification(); alert("Loaded!");
+                } catch (err) { alert("Error"); }
+            }; reader.readAsText(file);
         }
 
         function exportData() {
-            // Save marks and streak data together
-            const payload = { marksData: marks, gameState: gameData };
-            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `tracker_backup_pro.json`; a.click();
+            const blob = new Blob([JSON.stringify({ marksData: marks, gameState: gameData })], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `tracker_backup.json`; a.click();
         }
 
-        // --- CORE ENTRY LOGIC ---
-        function handleSubjectChange() {
-            document.getElementById('componentWrapper').style.display = document.getElementById('subject').value === "Combined Maths" ? 'none' : 'block';
-        }
+        function handleSubjectChange() { document.getElementById('componentWrapper').style.display = document.getElementById('subject').value === "Combined Maths" ? 'none' : 'block'; }
 
         function handleMarkSubmit(e) {
             e.preventDefault();
             const date = document.getElementById('markDate').value;
-            const subject = document.getElementById('subject').value;
-            const component = subject === "Combined Maths" ? "General" : document.getElementById('component').value;
-            const category = document.getElementById('categoryType').value;
-            const rawPaperName = document.getElementById('paperName').value.trim();
-            
-            // Merge category safely into topic tag so it doesn't break the existing Google Sheet structure
-            const topicTag = `[${category}]`; 
-            const scoreObtained = parseFloat(document.getElementById('scoreObtained').value);
-            const scoreTotal = parseFloat(document.getElementById('scoreTotal').value);
+            const sub = document.getElementById('subject').value;
+            const comp = sub === "Combined Maths" ? "General" : document.getElementById('component').value;
+            const tag = `[${document.getElementById('categoryType').value}]`; 
+            const name = document.getElementById('paperName').value.trim();
+            const obt = parseFloat(document.getElementById('scoreObtained').value);
+            const tot = parseFloat(document.getElementById('scoreTotal').value);
 
-            if (scoreObtained > scoreTotal) { alert("Obtained score cannot exceed total."); return; }
+            if (obt > tot) { alert("Cannot exceed total."); return; }
 
-            marks.push({ id: Date.now().toString(), date, subject, component, paperName: rawPaperName, topicTag, scoreObtained, scoreTotal, percentage: parseFloat(((scoreObtained / scoreTotal) * 100).toFixed(2)) });
-            marks.sort((a, b) => new Date(a.date) - new Date(b.date));
-            localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
+            marks.push({ id: Date.now().toString(), date, subject: sub, component: comp, paperName: name, topicTag: tag, scoreObtained: obt, scoreTotal: tot, percentage: parseFloat(((obt / tot) * 100).toFixed(2)) });
+            marks.sort((a, b) => new Date(a.date) - new Date(b.date)); localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
             
-            updateDashboard();
-            evaluateGamification();
-            switchTab('tab-dashboard'); // Auto-switch to dashboard after saving
-            
+            updateDashboard(); evaluateGamification(); switchTab('tab-dashboard');
             document.getElementById('paperName').value = ''; document.getElementById('scoreObtained').value = ''; 
         }
 
         function deleteMark(id) {
-            if (confirm("Delete this row?")) {
-                marks = marks.filter(m => m.id !== id);
-                localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
-                updateDashboard();
-                evaluateGamification();
-            }
+            if (confirm("Delete?")) { marks = marks.filter(m => m.id !== id); localStorage.setItem('real_sheet_marks', JSON.stringify(marks)); updateDashboard(); evaluateGamification(); }
         }
 
-        // --- DASHBOARD RENDERING ---
         function updateDashboard() {
-            const windowDays = document.getElementById('timeframeFilter').value;
-            const subjectFilter = document.getElementById('chartSubjectFilter').value;
+            const days = document.getElementById('timeframeFilter').value;
+            const subF = document.getElementById('chartSubjectFilter').value;
+            const thresh = days === 'all' ? new Date(0) : new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+            const data = marks.filter(m => new Date(m.date) >= thresh);
             
-            const threshold = windowDays === 'all' ? new Date(0) : new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
-            const dataset = marks.filter(m => new Date(m.date) >= threshold);
-            
-            // Build the Average Boxes
             document.getElementById('averagesGrid').innerHTML = SUBJECTS.map(sub => {
-                const subEntries = dataset.filter(m => m.subject === sub);
-                const average = subEntries.length ? (subEntries.reduce((a, c) => a + c.percentage, 0) / subEntries.length).toFixed(1) + '%' : '--';
-                let col = sub.includes("2026") ? "text-teal-600" : sub.includes("2027") ? "text-cyan-600" : sub === "Chemistry" ? "text-orange-600" : "text-indigo-600";
-                return `<div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center"><div class="text-[10px] uppercase font-bold text-gray-400 truncate w-full">${sub}</div><div class="text-xl font-black ${col} mt-1">${average}</div><div class="text-[9px] text-gray-400">${subEntries.length} items</div></div>`;
+                const s = data.filter(m => m.subject === sub);
+                const avg = s.length ? (s.reduce((a, c) => a + c.percentage, 0) / s.length).toFixed(1) + '%' : '--';
+                let c = sub.includes("2026") ? "text-teal-600" : sub.includes("2027") ? "text-cyan-600" : sub === "Chemistry" ? "text-orange-600" : "text-indigo-600";
+                return `<div class="bg-white p-3 rounded-lg border shadow-sm flex flex-col justify-center text-center"><div class="text-[10px] uppercase font-bold text-gray-400 truncate w-full">${sub}</div><div class="text-xl font-black ${c} mt-1">${avg}</div><div class="text-[9px] text-gray-400">${s.length} items</div></div>`;
             }).join('');
 
-            // Build History Table
             const tbody = document.getElementById('historyTableBody');
-            if (marks.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-400 italic">No records found. Log some marks!</td></tr>`; } 
+            if (marks.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-400 italic">No records.</td></tr>`; } 
             else {
                 tbody.innerHTML = [...marks].reverse().map(m => `
                     <tr class="hover:bg-gray-50/70">
-                        <td class="p-3 text-gray-500 font-medium">${m.date.slice(5)}</td>
-                        <td class="p-3"><span class="font-bold block text-gray-800">${m.subject}</span><span class="text-[10px] text-gray-400 font-semibold uppercase">${m.component}</span></td>
-                        <td class="p-3"><span class="text-gray-700 block">${m.paperName}</span><span class="inline-block font-mono text-indigo-500 bg-indigo-50 text-[9px] px-1.5 py-0.5 rounded mt-0.5">${m.topicTag}</span></td>
-                        <td class="p-3 text-right"><span class="block font-mono font-black text-indigo-600 text-sm">${m.percentage}%</span><span class="text-[10px] text-gray-400 font-mono">${m.scoreObtained}/${m.scoreTotal}</span></td>
+                        <td class="p-3 text-gray-500">${m.date.slice(5)}</td>
+                        <td class="p-3"><span class="font-bold text-gray-800 block">${m.subject}</span><span class="text-[10px] text-gray-400 font-semibold uppercase">${m.component}</span></td>
+                        <td class="p-3"><span class="text-gray-700 block">${m.paperName}</span><span class="inline-block font-mono text-indigo-500 bg-indigo-50 text-[9px] px-1 py-0.5 rounded">${m.topicTag}</span></td>
+                        <td class="p-3 text-right"><span class="block font-mono font-black text-indigo-600">${m.percentage}%</span><span class="text-[10px] text-gray-400 font-mono">${m.scoreObtained}/${m.scoreTotal}</span></td>
                         <td class="p-3 text-center"><button onclick="deleteMark('${m.id}')" class="text-gray-300 hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></button></td>
                     </tr>
                 `).join('');
                 lucide.createIcons();
             }
 
-            // Build Chart
             const ctx = document.getElementById('performanceChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-            if (dataset.length === 0) return;
+            if (chartInstance) chartInstance.destroy(); if (data.length === 0) return;
 
-            const uniqueDates = [...new Set(dataset.map(m => m.date))];
-            const colorMap = { "Combined Maths": "#4f46e5", "Physics 2026": "#0d9488", "Physics 2027": "#0891b2", "Chemistry": "#ea580c" };
-            
-            // Filter subjects for the chart based on the dropdown
-            const subjectsToGraph = subjectFilter === "All" ? SUBJECTS : [subjectFilter];
+            const dates = [...new Set(data.map(m => m.date))];
+            const cmap = { "Combined Maths": "#4f46e5", "Physics 2026": "#0d9488", "Physics 2027": "#0891b2", "Chemistry": "#ea580c" };
+            const subs = subF === "All" ? SUBJECTS : [subF];
 
-            const chartDatasets = subjectsToGraph.map(sub => {
-                return {
-                    label: sub,
-                    data: uniqueDates.map(d => {
-                        const m = dataset.filter(x => x.subject === sub && x.date === d);
-                        return m.length ? m.reduce((a, b) => a + b.percentage, 0) / m.length : null;
-                    }),
-                    borderColor: colorMap[sub], backgroundColor: colorMap[sub] + "10", borderWidth: 3, spanGaps: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6
-                };
+            const cData = subs.map(sub => {
+                return { label: sub, data: dates.map(d => { const m = data.filter(x => x.subject === sub && x.date === d); return m.length ? m.reduce((a, b) => a + b.percentage, 0) / m.length : null; }), borderColor: cmap[sub], backgroundColor: cmap[sub] + "10", borderWidth: 3, spanGaps: true, tension: 0.3, pointRadius: 4 };
             }).filter(d => d.data.some(p => p !== null));
+            cData.push({ label: 'Target', data: Array(dates.length).fill(75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0 });
 
-            // Target Line
-            chartDatasets.push({ label: 'Target', data: Array(uniqueDates.length).fill(75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false });
-
-            chartInstance = new Chart(ctx, { 
-                type: 'line', 
-                data: { labels: uniqueDates.map(d => d.slice(5)), datasets: chartDatasets }, 
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    scales: { y: { min: 0, max: 100, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } },
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } } }
-                } 
-            });
+            chartInstance = new Chart(ctx, { type: 'line', data: { labels: dates.map(d => d.slice(5)), datasets: cData }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } } });
         }
     </script>
 </body>
