@@ -3,178 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Tracker PWA</title>
+    <title>Academic Tracker Pro</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkFjYWRlbWljIFRyYWNrZXIiLAogICJzaG9ydF9uYW1lIjogIlRyYWNrZXIiLAogICJzdGFydF91cmwiOiAiLi9pbmRleC5odG1sIiwKICAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmM2Y0ZjYiLAogICAidGhlbWVfY29sb3IiOiAiIzRmMzZlNSIKfQ==">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style> .tab-active { border-bottom: 2px solid #4f46e5; color: #4f46e5; font-weight: bold; } </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-12">
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-20">
 
-    <div id="syncBanner" class="bg-amber-500 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center">
-        <span id="syncStatusText" class="flex items-center gap-1">
-            <i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Local Storage Mode (Apps Script Web App URL Not Linked)
+    <div class="bg-indigo-900 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center sticky top-0 z-50">
+        <span id="syncStatusText" class="flex items-center gap-1 text-indigo-200">
+            <i data-lucide="cloud" class="w-3.5 h-3.5"></i> Connected
         </span>
-        <button onclick="setupGoogleSheet()" class="bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-[11px] transition">
-            Link Web App URL
-        </button>
+        <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1 text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20">
+                <i data-lucide="flame" class="w-3.5 h-3.5"></i> <span id="streakCount">0</span> Day Streak
+            </span>
+        </div>
     </div>
 
-    <header class="bg-indigo-700 text-white shadow-lg mb-6">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold flex items-center gap-2"><i data-lucide="cloud-lightning"></i> Exam Tracker Profile</h1>
-            <div class="flex flex-wrap gap-2 justify-center">
-                <input type="file" id="importFileInput" accept=".json" onchange="handleImportFile(event)" class="hidden">
-                <button onclick="document.getElementById('importFileInput').click()" class="bg-indigo-800/60 hover:bg-indigo-800/90 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-indigo-100"><i data-lucide="upload" class="w-3.5 h-3.5"></i> Import JSON</button>
-                <button onclick="exportData()" class="bg-indigo-800/60 hover:bg-indigo-800/90 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-indigo-100"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export Backup</button>
-                <button onclick="pushToSheets()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-white shadow"><i data-lucide="cloud-lightning" class="w-3.5 h-3.5"></i> Push to Sheet</button>
-                <button onclick="pullFromSheets()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 text-white shadow"><i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="syncBtnIcon"></i> Pull from Sheet</button>
-            </div>
+    <header class="bg-white shadow-sm border-b border-gray-200 mb-6">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2 text-indigo-900">
+                <i data-lucide="target" class="text-indigo-600"></i> Tracker Pro
+            </h1>
+        </div>
+        
+        <div class="max-w-7xl mx-auto px-4 flex gap-6 overflow-x-auto text-sm text-gray-500">
+            <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-active pb-3 flex items-center gap-1 whitespace-nowrap"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</button>
+            <button onclick="switchTab('tab-log')" id="btn-tab-log" class="pb-3 flex items-center gap-1 whitespace-nowrap"><i data-lucide="plus-circle" class="w-4 h-4"></i> Log Marks</button>
+            <button onclick="switchTab('tab-goals')" id="btn-tab-goals" class="pb-3 flex items-center gap-1 whitespace-nowrap"><i data-lucide="award" class="w-4 h-4"></i> Goals & Streaks</button>
+            <button onclick="switchTab('tab-settings')" id="btn-tab-settings" class="pb-3 flex items-center gap-1 whitespace-nowrap"><i data-lucide="settings" class="w-4 h-4"></i> Sync & History</button>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="space-y-8 lg:col-span-1">
-            <section class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h2 class="text-xl font-bold mb-4 text-indigo-900 flex items-center gap-2"><i data-lucide="plus-circle" class="text-indigo-600"></i> Log New Marks</h2>
+    <main class="max-w-7xl mx-auto px-4">
+        
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 class="text-lg font-bold text-gray-800">Performance Analytics</h2>
+                    <div class="flex gap-2">
+                        <select id="chartSubjectFilter" onchange="updateDashboard()" class="border rounded-lg p-1.5 text-xs bg-gray-50 outline-none">
+                            <option value="All">All Subjects</option>
+                            <option value="Combined Maths">Combined Maths</option>
+                            <option value="Physics 2026">Physics 2026</option>
+                            <option value="Physics 2027">Physics 2027</option>
+                            <option value="Chemistry">Chemistry</option>
+                        </select>
+                        <select id="timeframeFilter" onchange="updateDashboard()" class="border rounded-lg p-1.5 text-xs bg-gray-50 outline-none">
+                            <option value="7">Past Week</option><option value="30" selected>Past Month</option><option value="all">All Time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="averagesGrid"></div>
+                <div class="relative w-full h-72 border border-gray-50 rounded-xl p-2 bg-gray-50"><canvas id="performanceChart"></canvas></div>
+            </div>
+        </section>
+
+        <section id="tab-log" class="tab-content hidden max-w-md mx-auto">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2"><i data-lucide="pen-tool" class="text-indigo-600"></i> New Entry</h2>
                 <form id="markForm" class="space-y-4" onsubmit="handleMarkSubmit(event)">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Date</label><input type="date" id="markDate" required class="w-full border rounded-lg p-2 outline-none"></div>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1">DATE</label><input type="date" id="markDate" required class="w-full border rounded-lg p-2 text-sm outline-none bg-gray-50"></div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                        <select id="subject" onchange="handleSubjectChange()" required class="w-full border rounded-lg p-2 outline-none">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">SUBJECT</label>
+                        <select id="subject" onchange="handleSubjectChange()" required class="w-full border rounded-lg p-2 text-sm outline-none bg-gray-50">
                             <option value="Combined Maths">Combined Mathematics</option>
                             <option value="Physics 2026">Physics (2026 Syllabus)</option>
                             <option value="Physics 2027">Physics (2027 Syllabus)</option>
                             <option value="Chemistry">Chemistry</option>
                         </select>
                     </div>
-                    <div id="componentWrapper">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Component</label>
-                        <select id="component" class="w-full border rounded-lg p-2 outline-none">
-                            <option value="MCQ">MCQ</option><option value="Essay">Essay / Structured</option><option value="Full Paper">Full Composite Paper</option>
-                        </select>
-                    </div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Paper Identity</label><input type="text" id="paperName" placeholder="e.g., 2018 Past Paper" required class="w-full border rounded-lg p-2 outline-none"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Topic Tag</label><input type="text" id="topicTag" placeholder="e.g., Mechanics" class="w-full border rounded-lg p-2 outline-none"></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Obtained</label><input type="number" step="0.01" id="scoreObtained" required min="0" class="w-full border rounded-lg p-2 outline-none"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Out Of</label><input type="number" step="0.01" id="scoreTotal" required min="1" class="w-full border rounded-lg p-2 outline-none"></div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">CATEGORY</label>
+                            <select id="categoryType" class="w-full border rounded-lg p-2 text-sm outline-none bg-gray-50">
+                                <option value="Revision">Revision / Tute</option>
+                                <option value="Past Paper">Past Paper</option>
+                                <option value="Term Test">Term Test</option>
+                            </select>
+                        </div>
+                        <div id="componentWrapper">
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">FORMAT</label>
+                            <select id="component" class="w-full border rounded-lg p-2 text-sm outline-none bg-gray-50">
+                                <option value="MCQ">MCQ</option><option value="Essay">Essay</option><option value="Full Paper">Full Paper</option>
+                            </select>
+                        </div>
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-2.5 rounded-lg transition shadow flex justify-center items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> Save Entry</button>
+                    <div><label class="block text-xs font-semibold text-gray-500 mb-1">PAPER DETAILS / TOPIC</label><input type="text" id="paperName" placeholder="e.g., 2018 AL or Mechanics" required class="w-full border rounded-lg p-2 text-sm outline-none bg-gray-50"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-semibold text-gray-500 mb-1">SCORE</label><input type="number" step="0.01" id="scoreObtained" required min="0" class="w-full border rounded-lg p-2 text-lg font-mono outline-none bg-gray-50"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 mb-1">OUT OF</label><input type="number" step="0.01" id="scoreTotal" required min="1" class="w-full border rounded-lg p-2 text-lg font-mono outline-none bg-gray-50"></div>
+                    </div>
+                    <button type="submit" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-lg transition shadow-md flex justify-center items-center gap-2">
+                        Save to Log
+                    </button>
                 </form>
-            </section>
-        </div>
+            </div>
+        </section>
 
-        <div class="lg:col-span-2 space-y-8">
-            <section class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-indigo-900 flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-indigo-600"></i> Analytics</h2>
-                    <select id="timeframeFilter" onchange="updateDashboard()" class="border rounded-lg p-1.5 text-sm bg-gray-50 outline-none">
-                        <option value="7">Past Week</option><option value="30" selected>Past Month</option><option value="all">All Time</option>
-                    </select>
+        <section id="tab-goals" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="bg-gradient-to-br from-orange-500 to-rose-500 p-6 rounded-xl shadow-md text-white flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <i data-lucide="flame" class="w-24 h-24 absolute -right-4 -bottom-4 opacity-20"></i>
+                    <h3 class="text-sm font-bold uppercase tracking-wider mb-2 opacity-90">Current Streak</h3>
+                    <div class="text-6xl font-black mb-2" id="bigStreak">0</div>
+                    <p class="text-sm opacity-90">Highest Streak: <span id="highestStreak" class="font-bold">0</span></p>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="averagesGrid"></div>
-                <div class="relative w-full h-72 md:h-96 bg-gray-50 rounded-xl p-2"><canvas id="performanceChart"></canvas></div>
-            </section>
 
-            <section class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h2 class="text-xl font-bold mb-4 text-indigo-900 flex items-center gap-2"><i data-lucide="history" class="text-indigo-600"></i> Score Log</h2>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="check-square" class="text-emerald-500"></i> Daily Tasks</h3>
+                    <p class="text-xs text-gray-500 mb-4">Complete tasks to maintain your streak.</p>
+                    <div class="space-y-3" id="dailyTasksList">
+                        </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 md:col-span-2">
+                    <div class="flex justify-between items-end mb-2">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i data-lucide="calendar" class="text-blue-500"></i> Weekly Grind</h3>
+                        <span class="text-sm font-bold text-blue-600" id="weeklyProgressText">0 / 5 Papers</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Goal: Log at least 5 study sessions or papers this week.</p>
+                    <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+                        <div id="weeklyProgressBar" class="bg-blue-500 h-4 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="tab-settings" class="tab-content hidden space-y-6">
+            
+            <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider mb-4">Cloud Sync Controls</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button onclick="setupGoogleSheet()" class="bg-white border border-indigo-200 hover:bg-indigo-100 px-3 py-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 text-indigo-800 shadow-sm"><i data-lucide="link" class="w-4 h-4"></i> Link URL</button>
+                    <button onclick="pushToSheets()" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 text-white shadow-sm"><i data-lucide="upload-cloud" class="w-4 h-4"></i> Push Up</button>
+                    <button onclick="pullFromSheets()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 text-white shadow-sm"><i data-lucide="download-cloud" class="w-4 h-4"></i> Pull Down</button>
+                    <div class="bg-white border border-indigo-200 rounded-lg flex overflow-hidden shadow-sm">
+                        <input type="file" id="importFileInput" accept=".json" onchange="handleImportFile(event)" class="hidden">
+                        <button onclick="document.getElementById('importFileInput').click()" class="flex-1 hover:bg-gray-50 py-2 text-xs font-semibold text-gray-600 border-r border-gray-200 flex flex-col items-center gap-1"><i data-lucide="file-json" class="w-4 h-4"></i> Import</button>
+                        <button onclick="exportData()" class="flex-1 hover:bg-gray-50 py-2 text-xs font-semibold text-gray-600 flex flex-col items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> Export</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold mb-4 text-gray-800">Raw Data Log</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                <th class="p-3">Date</th><th class="p-3">Subject</th><th class="p-3">Paper / Tag</th><th class="p-3 text-center">Raw Score</th><th class="p-3 text-right">Normalized</th><th class="p-3 text-center">Action</th>
+                            <tr class="border-b bg-gray-50 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                <th class="p-3">Date</th><th class="p-3">Subject</th><th class="p-3">Details</th><th class="p-3 text-right">Score</th><th class="p-3 text-center">Del</th>
                             </tr>
                         </thead>
-                        <tbody id="historyTableBody" class="text-sm divide-y divide-gray-100"></tbody>
+                        <tbody id="historyTableBody" class="text-xs divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
-            </section>
-        </div>
+            </div>
+        </section>
+
     </main>
 
     <script>
         let marks = JSON.parse(localStorage.getItem('real_sheet_marks')) || [];
         let scriptUrl = localStorage.getItem('tracker_script_url') || '';
+        let gameData = JSON.parse(localStorage.getItem('tracker_game_state')) || { streak: 0, highest: 0, lastActive: '' };
         let chartInstance = null;
 
         const SUBJECTS = ["Combined Maths", "Physics 2026", "Physics 2027", "Chemistry"];
-        const TARGET_BENCHMARK = 75;
 
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             document.getElementById('markDate').value = new Date().toISOString().split('T')[0];
             updateSyncStatus();
+            evaluateGamification();
             updateDashboard();
         });
 
-        function updateSyncStatus(status = 'idle') {
-            const banner = document.getElementById('syncBanner');
-            const text = document.getElementById('syncStatusText');
-            if (!scriptUrl) {
-                banner.className = "bg-amber-500 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center";
-                text.innerHTML = `<i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Offline Mode (Web App URL Not Configured)`;
-            } else if (status === 'syncing') {
-                banner.className = "bg-blue-600 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center";
-                text.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Communicating with Google Spreadsheet...`;
-            } else {
-                banner.className = "bg-emerald-600 text-white text-xs font-semibold px-4 py-2 flex justify-between items-center";
-                text.innerHTML = `<i data-lucide="cloud" class="w-3.5 h-3.5"></i> Connected to Google Sheets API`;
+        // --- TAB NAVIGATION LOGIC ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Reset button styles
+            document.querySelectorAll('[id^="btn-tab-"]').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-gray-500');
+            });
+            
+            // Highlight active
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-gray-500');
+        }
+
+        // --- GAMIFICATION LOGIC ---
+        function evaluateGamification() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayMarks = marks.filter(m => m.date === today);
+            
+            // Daily Tasks
+            const hasLoggedToday = todayMarks.length > 0;
+            const hitBenchmark = todayMarks.some(m => m.percentage >= 75);
+
+            // Update Streak
+            if (hasLoggedToday && gameData.lastActive !== today) {
+                if (gameData.lastActive) {
+                    const diffDays = Math.floor((new Date(today) - new Date(gameData.lastActive)) / (1000 * 60 * 60 * 24));
+                    if (diffDays === 1) { gameData.streak++; } 
+                    else { gameData.streak = 1; }
+                } else {
+                    gameData.streak = 1;
+                }
+                gameData.lastActive = today;
+                if (gameData.streak > gameData.highest) gameData.highest = gameData.streak;
+                localStorage.setItem('tracker_game_state', JSON.stringify(gameData));
+            } else if (!hasLoggedToday && gameData.lastActive) {
+                const diffDays = Math.floor((new Date(today) - new Date(gameData.lastActive)) / (1000 * 60 * 60 * 24));
+                if (diffDays > 1) { 
+                    gameData.streak = 0; 
+                    localStorage.setItem('tracker_game_state', JSON.stringify(gameData)); 
+                }
             }
+
+            // Weekly Goal (Last 7 days)
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const weeklyCount = marks.filter(m => new Date(m.date) >= sevenDaysAgo).length;
+            const weeklyPercent = Math.min((weeklyCount / 5) * 100, 100);
+
+            // Update DOM Elements
+            document.getElementById('streakCount').innerText = gameData.streak;
+            document.getElementById('bigStreak').innerText = gameData.streak;
+            document.getElementById('highestStreak').innerText = gameData.highest;
+            
+            document.getElementById('weeklyProgressText').innerText = `${weeklyCount} / 5 Entries`;
+            document.getElementById('weeklyProgressBar').style.width = `${weeklyPercent}%`;
+            if(weeklyPercent === 100) document.getElementById('weeklyProgressBar').classList.add('bg-emerald-500');
+
+            document.getElementById('dailyTasksList').innerHTML = `
+                <div class="flex items-center gap-3 p-3 rounded-lg border ${hasLoggedToday ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-600'}">
+                    <i data-lucide="${hasLoggedToday ? 'check-circle-2' : 'circle'}" class="w-5 h-5 ${hasLoggedToday ? 'text-emerald-500' : 'text-gray-400'}"></i>
+                    <span class="text-sm font-semibold">Log at least one study session today</span>
+                </div>
+                <div class="flex items-center gap-3 p-3 rounded-lg border ${hitBenchmark ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-600'}">
+                    <i data-lucide="${hitBenchmark ? 'check-circle-2' : 'circle'}" class="w-5 h-5 ${hitBenchmark ? 'text-blue-500' : 'text-gray-400'}"></i>
+                    <span class="text-sm font-semibold">Score above 75% on any test today</span>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // --- CLOUD SYNC LOGIC ---
+        function updateSyncStatus(status = 'idle') {
+            const text = document.getElementById('syncStatusText');
+            if (!scriptUrl) { text.innerHTML = `<i data-lucide="cloud-off" class="w-3.5 h-3.5"></i> Offline`; } 
+            else if (status === 'syncing') { text.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Syncing...`; } 
+            else { text.innerHTML = `<i data-lucide="cloud" class="w-3.5 h-3.5"></i> Connected`; }
             lucide.createIcons();
         }
 
         function setupGoogleSheet() {
             const url = prompt("Paste your Google Apps Script Web App URL (ends in /exec):", scriptUrl);
-            if (url) {
-                scriptUrl = url.trim();
-                localStorage.setItem('tracker_script_url', scriptUrl);
-                updateSyncStatus();
-            }
-        }
-
-        function handleMarkSubmit(e) {
-            e.preventDefault();
-            const date = document.getElementById('markDate').value;
-            const subject = document.getElementById('subject').value;
-            const component = subject === "Combined Maths" ? "General" : document.getElementById('component').value;
-            const paperName = document.getElementById('paperName').value.trim();
-            const topicTag = document.getElementById('topicTag').value.trim() || 'N/A';
-            const scoreObtained = parseFloat(document.getElementById('scoreObtained').value);
-            const scoreTotal = parseFloat(document.getElementById('scoreTotal').value);
-
-            if (scoreObtained > scoreTotal) { alert("Obtained score cannot exceed total."); return; }
-
-            marks.push({ id: Date.now().toString(), date, subject, component, paperName, topicTag, scoreObtained, scoreTotal, percentage: parseFloat(((scoreObtained / scoreTotal) * 100).toFixed(2)) });
-            marks.sort((a, b) => new Date(a.date) - new Date(b.date));
-            localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
-            updateDashboard();
-            document.getElementById('paperName').value = ''; document.getElementById('topicTag').value = ''; document.getElementById('scoreObtained').value = ''; document.getElementById('scoreTotal').value = '';
+            if (url) { scriptUrl = url.trim(); localStorage.setItem('tracker_script_url', scriptUrl); updateSyncStatus(); }
         }
 
         async function pushToSheets() {
             if (!scriptUrl) { alert("Link your Web App URL first!"); return; }
             updateSyncStatus('syncing');
             try {
-                await fetch(scriptUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(marks)
-                });
-                alert("Data state successfully exported to Google Sheet rows!");
-            } catch (e) {
-                alert("Sync write completed.");
-            } finally { updateSyncStatus('idle'); }
+                await fetch(scriptUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marks) });
+                alert("Cloud Push Successful!");
+            } catch (e) { alert("Sync completed."); } finally { updateSyncStatus('idle'); }
         }
 
         async function pullFromSheets() {
             if (!scriptUrl) { alert("Link your Web App URL first!"); return; }
             updateSyncStatus('syncing');
-            const icon = document.getElementById('syncBtnIcon');
-            if (icon) icon.classList.add('animate-spin');
             try {
                 const response = await fetch(scriptUrl);
                 const cloudMarks = await response.json();
@@ -182,16 +292,13 @@
                     marks = cloudMarks;
                     localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
                     updateDashboard();
-                    alert("Synced with Google Sheet spreadsheet records!");
+                    evaluateGamification();
+                    alert("Pulled latest data from cloud!");
                 }
-            } catch (e) {
-                alert("Could not fetch remote values. Check alignment config.");
-            } finally {
-                updateSyncStatus('idle');
-                if (icon) icon.classList.remove('animate-spin');
-            }
+            } catch (e) { alert("Could not pull data. Check URL permissions."); } finally { updateSyncStatus('idle'); }
         }
 
+        // --- BACKUP LOGIC (UPGRADED) ---
         function handleImportFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -199,12 +306,20 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    const incoming = importedData.marks || importedData.tracker_marks || (Array.isArray(importedData) ? importedData : null);
-                    if (incoming) {
-                        marks = incoming;
+                    // Handle new format containing gamification OR old raw array
+                    if(importedData.marksData) {
+                        marks = importedData.marksData;
+                        gameData = importedData.gameState || gameData;
+                    } else {
+                        marks = importedData.marks || importedData.tracker_marks || (Array.isArray(importedData) ? importedData : null);
+                    }
+                    
+                    if (marks) {
                         localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
+                        localStorage.setItem('tracker_game_state', JSON.stringify(gameData));
                         updateDashboard();
-                        alert("Data local cache loaded successfully!");
+                        evaluateGamification();
+                        alert("Backup Loaded!");
                     }
                 } catch (err) { alert("Error reading file."); }
             };
@@ -212,8 +327,41 @@
         }
 
         function exportData() {
-            const blob = new Blob([JSON.stringify({ marks })], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `tracker_backup.json`; a.click();
+            // Save marks and streak data together
+            const payload = { marksData: marks, gameState: gameData };
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `tracker_backup_pro.json`; a.click();
+        }
+
+        // --- CORE ENTRY LOGIC ---
+        function handleSubjectChange() {
+            document.getElementById('componentWrapper').style.display = document.getElementById('subject').value === "Combined Maths" ? 'none' : 'block';
+        }
+
+        function handleMarkSubmit(e) {
+            e.preventDefault();
+            const date = document.getElementById('markDate').value;
+            const subject = document.getElementById('subject').value;
+            const component = subject === "Combined Maths" ? "General" : document.getElementById('component').value;
+            const category = document.getElementById('categoryType').value;
+            const rawPaperName = document.getElementById('paperName').value.trim();
+            
+            // Merge category safely into topic tag so it doesn't break the existing Google Sheet structure
+            const topicTag = `[${category}]`; 
+            const scoreObtained = parseFloat(document.getElementById('scoreObtained').value);
+            const scoreTotal = parseFloat(document.getElementById('scoreTotal').value);
+
+            if (scoreObtained > scoreTotal) { alert("Obtained score cannot exceed total."); return; }
+
+            marks.push({ id: Date.now().toString(), date, subject, component, paperName: rawPaperName, topicTag, scoreObtained, scoreTotal, percentage: parseFloat(((scoreObtained / scoreTotal) * 100).toFixed(2)) });
+            marks.sort((a, b) => new Date(a.date) - new Date(b.date));
+            localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
+            
+            updateDashboard();
+            evaluateGamification();
+            switchTab('tab-dashboard'); // Auto-switch to dashboard after saving
+            
+            document.getElementById('paperName').value = ''; document.getElementById('scoreObtained').value = ''; 
         }
 
         function deleteMark(id) {
@@ -221,41 +369,43 @@
                 marks = marks.filter(m => m.id !== id);
                 localStorage.setItem('real_sheet_marks', JSON.stringify(marks));
                 updateDashboard();
+                evaluateGamification();
             }
         }
 
-        function handleSubjectChange() {
-            document.getElementById('componentWrapper').style.display = document.getElementById('subject').value === "Combined Maths" ? 'none' : 'block';
-        }
-
+        // --- DASHBOARD RENDERING ---
         function updateDashboard() {
             const windowDays = document.getElementById('timeframeFilter').value;
+            const subjectFilter = document.getElementById('chartSubjectFilter').value;
+            
             const threshold = windowDays === 'all' ? new Date(0) : new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
             const dataset = marks.filter(m => new Date(m.date) >= threshold);
             
+            // Build the Average Boxes
             document.getElementById('averagesGrid').innerHTML = SUBJECTS.map(sub => {
                 const subEntries = dataset.filter(m => m.subject === sub);
-                const average = subEntries.length ? (subEntries.reduce((a, c) => a + c.percentage, 0) / subEntries.length).toFixed(1) + '%' : 'N/A';
-                let col = sub.includes("2026") ? "border-teal-500 text-teal-950" : sub.includes("2027") ? "border-cyan-500 text-cyan-950" : sub === "Chemistry" ? "border-orange-500 text-orange-950" : "border-indigo-500 text-indigo-950";
-                return `<div class="bg-gray-50 p-3.5 rounded-lg border-l-4 ${col}"><div class="text-xs uppercase font-bold text-gray-400 truncate">${sub}</div><div class="text-xl font-black mt-1">${average}</div><div class="text-[10px] text-gray-400">${subEntries.length} items</div></div>`;
+                const average = subEntries.length ? (subEntries.reduce((a, c) => a + c.percentage, 0) / subEntries.length).toFixed(1) + '%' : '--';
+                let col = sub.includes("2026") ? "text-teal-600" : sub.includes("2027") ? "text-cyan-600" : sub === "Chemistry" ? "text-orange-600" : "text-indigo-600";
+                return `<div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center"><div class="text-[10px] uppercase font-bold text-gray-400 truncate w-full">${sub}</div><div class="text-xl font-black ${col} mt-1">${average}</div><div class="text-[9px] text-gray-400">${subEntries.length} items</div></div>`;
             }).join('');
 
+            // Build History Table
             const tbody = document.getElementById('historyTableBody');
-            if (dataset.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-gray-400 italic">No historical records found.</td></tr>`; } 
+            if (marks.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-400 italic">No records found. Log some marks!</td></tr>`; } 
             else {
-                tbody.innerHTML = [...dataset].reverse().map(m => `
+                tbody.innerHTML = [...marks].reverse().map(m => `
                     <tr class="hover:bg-gray-50/70">
-                        <td class="p-3 text-gray-500 font-medium">${m.date}</td>
-                        <td class="p-3"><span class="font-bold block">${m.subject}</span><span class="text-xs text-gray-400 font-semibold">${m.component}</span></td>
-                        <td class="p-3"><span class="text-gray-700 block">${m.paperName}</span><span class="inline-block bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded mt-0.5">🏷️ ${m.topicTag}</span></td>
-                        <td class="p-3 text-center font-mono text-gray-500">${m.scoreObtained} / ${m.scoreTotal}</td>
-                        <td class="p-3 text-right font-mono font-black text-indigo-600 text-base">${m.percentage}%</td>
-                        <td class="p-3 text-center"><button onclick="deleteMark('${m.id}')" class="text-gray-400 hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                        <td class="p-3 text-gray-500 font-medium">${m.date.slice(5)}</td>
+                        <td class="p-3"><span class="font-bold block text-gray-800">${m.subject}</span><span class="text-[10px] text-gray-400 font-semibold uppercase">${m.component}</span></td>
+                        <td class="p-3"><span class="text-gray-700 block">${m.paperName}</span><span class="inline-block font-mono text-indigo-500 bg-indigo-50 text-[9px] px-1.5 py-0.5 rounded mt-0.5">${m.topicTag}</span></td>
+                        <td class="p-3 text-right"><span class="block font-mono font-black text-indigo-600 text-sm">${m.percentage}%</span><span class="text-[10px] text-gray-400 font-mono">${m.scoreObtained}/${m.scoreTotal}</span></td>
+                        <td class="p-3 text-center"><button onclick="deleteMark('${m.id}')" class="text-gray-300 hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></button></td>
                     </tr>
                 `).join('');
                 lucide.createIcons();
             }
 
+            // Build Chart
             const ctx = document.getElementById('performanceChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
             if (dataset.length === 0) return;
@@ -263,22 +413,33 @@
             const uniqueDates = [...new Set(dataset.map(m => m.date))];
             const colorMap = { "Combined Maths": "#4f46e5", "Physics 2026": "#0d9488", "Physics 2027": "#0891b2", "Chemistry": "#ea580c" };
             
-            const chartDatasets = SUBJECTS.map(sub => {
+            // Filter subjects for the chart based on the dropdown
+            const subjectsToGraph = subjectFilter === "All" ? SUBJECTS : [subjectFilter];
+
+            const chartDatasets = subjectsToGraph.map(sub => {
                 return {
                     label: sub,
                     data: uniqueDates.map(d => {
                         const m = dataset.filter(x => x.subject === sub && x.date === d);
                         return m.length ? m.reduce((a, b) => a + b.percentage, 0) / m.length : null;
                     }),
-                    borderColor: colorMap[sub], backgroundColor: colorMap[sub] + "10", borderWidth: 2, spanGaps: true, tension: 0.1
+                    borderColor: colorMap[sub], backgroundColor: colorMap[sub] + "10", borderWidth: 3, spanGaps: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 6
                 };
             }).filter(d => d.data.some(p => p !== null));
 
-            chartDatasets.push({ label: 'Target Line', data: Array(uniqueDates.length).fill(TARGET_BENCHMARK), borderColor: '#f43f5e', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, fill: false });
-            chartInstance = new Chart(ctx, { type: 'line', data: { labels: uniqueDates, datasets: chartDatasets }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } } });
+            // Target Line
+            chartDatasets.push({ label: 'Target', data: Array(uniqueDates.length).fill(75), borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false });
+
+            chartInstance = new Chart(ctx, { 
+                type: 'line', 
+                data: { labels: uniqueDates.map(d => d.slice(5)), datasets: chartDatasets }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    scales: { y: { min: 0, max: 100, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } } }
+                } 
+            });
         }
     </script>
-</body>
-</html>
 </body>
 </html>
